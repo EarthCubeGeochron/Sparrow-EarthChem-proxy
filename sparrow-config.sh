@@ -1,0 +1,2 @@
+export COMPOSE_PROJECT_NAME=navdat
+export SPARROW_DATA_DIR="$SPARROW_CONFIG_DIR/data"
