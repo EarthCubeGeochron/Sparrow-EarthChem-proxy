@@ -64,31 +64,21 @@ def import_sample(row):
 def combine_repeated_columns(df):
     """Take the first value of duplicate columns and drop the rest."""
     # Clean column names by removing trailing digits and whitespace
-    df.columns = [re.sub(r"\.\d+$", "", col_id).strip() for col_id in df.columns]
-
-    columns_to_keep = list(range(len(df.columns)))
-    has_duplicates = set()
-
-    for ix, column_name in enumerate(df.columns):
-        if column_name in has_duplicates:
+    for column_name in df.columns:
+        # Strip pandas-created suffixes for repeated columns
+        cleaned_column_name = re.sub(r"\.\d+$", "", column_name).strip()
+        if cleaned_column_name == column_name:
+            # No need to change anything
             continue
-        for duplicate_index in duplicate_indexes(df, column_name):
-            if column_name == "ZN METH":
-                embed()
-            df.iloc[:, ix].combine_first(df.iloc[:, duplicate_index])
-            # Continue removing things from our "keep" list if they are duplicates
-            columns_to_keep.remove(duplicate_index)
-            has_duplicates.add(column_name)
 
-    print(f"Removed duplicates for {len(has_duplicates)} columns")
-    print(has_duplicates)
+        if cleaned_column_name not in df.columns:
+            # We need to improve our column name
+            df.rename(columns={column_name: cleaned_column_name}, inplace=True)
+            continue
 
-    res = df.iloc[:, columns_to_keep]
-
-    # Check that we have removed all duplicates
-    assert len(res.columns) == len(set(res.columns))
-
-    return res
+        df.loc[:, cleaned_column_name].combine_first(df.loc[:, column_name])
+        df.drop(columns=[column_name], inplace=True)
+    return df
 
 
 def duplicate_indexes(df, col_name) -> List[int]:
