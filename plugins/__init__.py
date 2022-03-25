@@ -4,10 +4,11 @@ import numpy as N
 import re
 from pathlib import Path
 from IPython import embed
+from decimal import Decimal
 
 # Fancy printing
 from rich import print
-from typing import List
+from typing import List, Optional
 import sparrow
 
 
@@ -37,8 +38,13 @@ def import_sample(row):
             continue
         uid = col_id + " UNIT"
         mid = col_id + " METH"
-        if col_id + " UNIT" in row.index and col_id + " METH" in row.index:
-            val = Value(val, col_id, str(row.loc[uid]), str(row.loc[mid]))
+        # Check to see whether we have a defined unit and method
+        if uid in row.index and mid in row.index:
+            unit = row.loc[uid]
+            if pandas.isnull(unit) and "_" in col_id:
+                # We have a composited column name and no unit, which probably means a ratio
+                unit = "ratio"
+            val = Value(val, col_id, str(unit), str(row.loc[mid]))
             print(f"{col_id}: {val.value} {val.unit} ({val.method})")
         elif col_id.endswith("AGE"):
             v1 = float(val)
@@ -47,9 +53,10 @@ def import_sample(row):
                 val = Value(v1 * -1, col_id, "year", "UNKNOWN")
             else:
                 val = Value(v1, col_id, "Ma", "UNKNOWN")
-        else:
-            print(f"{col_id}: {val}")
+
         data[col_id] = val
+
+    post_process_ages(data)
 
     print(data)
     # Now, we restructure the data into its final nested form
@@ -62,6 +69,7 @@ def import_sample(row):
         raise Exception(f"Could not parse reference {ref}")
     authors = ref[: year.start()].strip()
     year = int(year.group(1))
+    latitude = float(data["LATITUDE"])
 
     sample = {
         "name": data["SAMPLE ID"],
@@ -69,25 +77,51 @@ def import_sample(row):
             "type": "Point",
             "coordinates": [
                 float(data["LONGITUDE"]),
-                float(data["LATITUDE"]),
+                latitude,
             ],
         },
         "publication": {
             "author": authors,
             "year": year,
         },
+        "attribute": list(get_attributes(data)),
+        "material": {
+            "id": data["ROCK NAME"],
+            "member_of": data["MATERIAL"],
+        },
     }
 
     if precision := data.get("LOC PREC"):
-        sample["location_precision"] = meters_per_degree(
-            float(data["LATITUDE"])
-        ) * float(precision)
+        sample["location_precision"] = meters_per_degree(latitude) * float(precision)
 
-    sample["sessions"] = []
+    sample["sessions"] = get_sessions(data)
 
     print(sample)
 
     print()
+
+    # Actually load the data into the database
+    db = sparrow.get_database()
+    db.load_data("sample", sample)
+
+
+def get_attributes(data):
+    for col_name in ["MATERIAL", "TYPE", "COMPOSITION", "ROCK NAME", "SOURCE"]:
+        val = data.get(col_name)
+        if val is None:
+            continue
+        yield {
+            "name": col_name,
+            "value": val,
+        }
+
+
+def get_sessions(data):
+    params = [v for v in data.values() if isinstance(v, Value)]
+    # It might be nice to split these into different analyses here for tracking purposes.
+    datum_list = [v.to_datum() for v in params]
+
+    return [{"analysis": [{"datum": datum_list}]}]
 
 
 ## Utility functions
@@ -96,13 +130,40 @@ def import_sample(row):
 @dataclass
 class Value:
     """
-    A simple class to hold a value and its unit.
+    A simple class to hold a value and its unit. This could maybe be
+    eventually replaced with a Pydantic model.
     """
 
     value: float
     parameter: str
     unit: str
     method: str
+    error: Optional[float] = None
+
+    def to_datum(self):
+        return {
+            "value": self.value,
+            "error": self.error,
+            "type": {
+                "parameter": self.parameter,
+                "unit": self.unit,
+                "method": self.method,
+            },
+        }
+
+
+def post_process_ages(data):
+    age = data.get("AGE")
+    min_age = data.get("MIN AGE")
+    max_age = data.get("MAX AGE")
+    if any(x is None for x in [age, min_age, max_age]):
+        return
+    # If we have symmetric min and and max ages, we assume that these represent
+    # a Gaussian error bound on the age.
+    if age.value - min_age.value == max_age.value - age.value:
+        del data["MIN AGE"]
+        del data["MAX AGE"]
+        data["AGE"].error = age.value - min_age.value
 
 
 def combine_repeated_columns(df):
