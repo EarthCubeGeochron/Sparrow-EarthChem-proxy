@@ -144,8 +144,6 @@ def build_sessions(data):
 
 
 ## Utility functions
-
-
 @dataclass
 class Value:
     """
