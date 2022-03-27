@@ -1,9 +1,9 @@
 from dataclasses import dataclass
+from marshmallow.exceptions import ValidationError
 import pandas
 import numpy as N
 import re
 from pathlib import Path
-from IPython import embed
 from decimal import Decimal
 
 # Fancy printing
@@ -41,7 +41,9 @@ def import_sample(row):
         # Check to see whether we have a defined unit and method
         if uid in row.index and mid in row.index:
             unit = row.loc[uid]
-            if pandas.isnull(unit) and "_" in col_id:
+            if pandas.isnull(unit):
+                unit = None
+            if unit is None and "_" in col_id:
                 # We have a composited column name and no unit, which probably means a ratio
                 unit = "ratio"
             val = Value(val, col_id, str(unit), str(row.loc[mid]))
@@ -58,7 +60,6 @@ def import_sample(row):
 
     post_process_ages(data)
 
-    print(data)
     # Now, we restructure the data into its final nested form
 
     # Get reference data
@@ -80,21 +81,20 @@ def import_sample(row):
                 latitude,
             ],
         },
-        "publication": {
-            "author": authors,
-            "year": year,
-        },
-        "attribute": list(get_attributes(data)),
-        "material": {
-            "id": data["ROCK NAME"],
-            "member_of": data["MATERIAL"],
-        },
+        "publication": [
+            {
+                "author": authors,
+                "year": year,
+            }
+        ],
+        "attribute": list(build_attributes(data)),
+        "material": build_material(data),
     }
 
     if precision := data.get("LOC PREC"):
         sample["location_precision"] = meters_per_degree(latitude) * float(precision)
 
-    sample["sessions"] = get_sessions(data)
+    sample["session"] = build_sessions(data)
 
     print(sample)
 
@@ -102,26 +102,45 @@ def import_sample(row):
 
     # Actually load the data into the database
     db = sparrow.get_database()
-    db.load_data("sample", sample)
+    try:
+        db.load_data("sample", sample)
+    except ValidationError:
+        print("Failed to load sample")
 
 
-def get_attributes(data):
+def build_material(data):
+    rock_name = data.get("ROCK NAME")
+    material = data.get("MATERIAL")
+    if rock_name is None:
+        return material
+    if material is None:
+        return rock_name
+    return {"id": rock_name, "member_of": material}
+
+
+def build_attributes(data):
     for col_name in ["MATERIAL", "TYPE", "COMPOSITION", "ROCK NAME", "SOURCE"]:
         val = data.get(col_name)
         if val is None:
             continue
         yield {
-            "name": col_name,
+            "parameter": col_name,
             "value": val,
         }
 
 
-def get_sessions(data):
+def build_sessions(data):
     params = [v for v in data.values() if isinstance(v, Value)]
     # It might be nice to split these into different analyses here for tracking purposes.
     datum_list = [v.to_datum() for v in params]
 
-    return [{"analysis": [{"datum": datum_list}]}]
+    return [
+        {
+            "analysis": [{"datum": datum_list}],
+            "date": "1900-01-01T00:00:00",
+            "name": "All data",
+        }
+    ]
 
 
 ## Utility functions
@@ -139,6 +158,7 @@ class Value:
     unit: str
     method: str
     error: Optional[float] = None
+    error_metric: Optional[str] = None
 
     def to_datum(self):
         return {
@@ -148,11 +168,17 @@ class Value:
                 "parameter": self.parameter,
                 "unit": self.unit,
                 "method": self.method,
+                "error_metric": self.error_metric,
             },
         }
 
+    def rounded(self, digits=2):
+        return Decimal(round(self.value, digits))
+
 
 def post_process_ages(data):
+    """If MIN and MAX ages are symmetrical around the AGE value, we can assume that these
+    bounds apply to a basic error distribution."""
     age = data.get("AGE")
     min_age = data.get("MIN AGE")
     max_age = data.get("MAX AGE")
@@ -160,10 +186,14 @@ def post_process_ages(data):
         return
     # If we have symmetric min and and max ages, we assume that these represent
     # a Gaussian error bound on the age.
-    if age.value - min_age.value == max_age.value - age.value:
-        del data["MIN AGE"]
-        del data["MAX AGE"]
-        data["AGE"].error = age.value - min_age.value
+    d1 = age.rounded(5) - min_age.rounded(5)
+    d2 = max_age.rounded(5) - age.rounded(5)
+    # Estimate error bars from basic propagation
+    metric = "asymmetric range"
+    if d1 == d2:
+        metric = "symmetric range"
+    data["AGE"].error = Decimal(round((d1 + d2) / 2, 5))
+    data["AGE"].error_metric = metric
 
 
 def combine_repeated_columns(df):
