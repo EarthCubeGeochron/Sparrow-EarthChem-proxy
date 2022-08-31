@@ -9,10 +9,10 @@ from decimal import Decimal
 # Fancy printing
 from rich import print
 from typing import List, Optional
-import sparrow
+from sparrow.core import task, get_database
 
 
-@sparrow.task(name="import-earthchem")
+@task(name="import-earthchem")
 def import_earthchem():
     """
     This task imports files dumped from the EarthChem portal.
@@ -101,9 +101,9 @@ def import_sample(row):
     print()
 
     # Actually load the data into the database
-    db = sparrow.get_database()
+    db = get_database()
     try:
-        db.load_data("sample", sample)
+        db.load_data("sample", sample, strict=True)
     except ValidationError:
         print("Failed to load sample")
 
