@@ -9,15 +9,15 @@ from decimal import Decimal
 # Fancy printing
 from rich import print
 from typing import List, Optional
-import sparrow
+from sparrow.core import task, get_database, settings
 
 
-@sparrow.task(name="import-earthchem")
+@task(name="import-earthchem")
 def import_earthchem():
     """
     This task imports files dumped from the EarthChem portal.
     """
-    data_dir = Path(sparrow.settings.DATA_DIR)
+    data_dir = Path(settings.DATA_DIR)
     files = data_dir.glob("*.txt")
     for file in files:
         # Read a thousand rows at a time
@@ -28,7 +28,15 @@ def import_earthchem():
             df.apply(import_sample, axis=1)
 
 
-def import_sample(row):
+def import_sample(data):
+    """This function imports a single sample from the EarthChem dump file."""
+    try:
+        _import_sample(data)
+    except Exception:
+        pass
+
+
+def _import_sample(row):
     """
     This function imports a single sample from the EarthChem dump file.
     """
@@ -101,9 +109,9 @@ def import_sample(row):
     print()
 
     # Actually load the data into the database
-    db = sparrow.get_database()
+    db = get_database()
     try:
-        db.load_data("sample", sample)
+        db.load_data("sample", sample, strict=True)
     except ValidationError:
         print("Failed to load sample")
 
