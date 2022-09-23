@@ -5,4 +5,4 @@ export SPARROW_LAB_NAME="EarthChem"
 
 # Disable sparrow worker subsystem
 export SPARROW_TASK_WORKER=0
-export SPARROW_VERSION=">=3.0.0a1"
+export SPARROW_VERSION=">=2.5,>=3.0.0a1"
