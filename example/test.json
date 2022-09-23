@@ -1,0 +1,184 @@
+{
+    "name": "335-2",
+    "location": {"type": "Point", "coordinates": [-105.592, 40.0917]},
+    "publication": [{"author": "MATHEWS, GEOFFREY WILLIAM", "year": 1970}],
+    "attribute": [
+        {"parameter": "MATERIAL", "value": "igneous"},
+        {"parameter": "TYPE", "value": "plutonic"},
+        {"parameter": "SOURCE", "value": "NAVDAT"}
+    ],
+    "material": "igneous",
+    "location_precision": 1108.056892023239,
+    "session": [
+        {
+            "analysis": [
+                {
+                    "datum": [
+                        {
+                            "value": 58.8,
+                            "error": null,
+                            "type": {
+                                "parameter": "MIN AGE",
+                                "unit": "Ma",
+                                "method": "UNKNOWN",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 65.3,
+                            "error": Decimal("6.50000"),
+                            "type": {
+                                "parameter": "AGE",
+                                "unit": "Ma",
+                                "method": "UNKNOWN",
+                                "error_metric": "symmetric range"
+                            }
+                        },
+                        {
+                            "value": 71.8,
+                            "error": null,
+                            "type": {
+                                "parameter": "MAX AGE",
+                                "unit": "Ma",
+                                "method": "UNKNOWN",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 63.42,
+                            "error": null,
+                            "type": {
+                                "parameter": "SIO2",
+                                "unit": "WT%",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 0.4,
+                            "error": null,
+                            "type": {
+                                "parameter": "TIO2",
+                                "unit": "WT%",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 17.03,
+                            "error": null,
+                            "type": {
+                                "parameter": "AL2O3",
+                                "unit": "WT%",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 3.55,
+                            "error": null,
+                            "type": {
+                                "parameter": "FE2O3",
+                                "unit": "WT%",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 0.98,
+                            "error": null,
+                            "type": {
+                                "parameter": "MGO",
+                                "unit": "WT%",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 3.37,
+                            "error": null,
+                            "type": {
+                                "parameter": "CAO",
+                                "unit": "WT%",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 5.33,
+                            "error": null,
+                            "type": {
+                                "parameter": "NA2O",
+                                "unit": "WT%",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 4.7,
+                            "error": null,
+                            "type": {
+                                "parameter": "K2O",
+                                "unit": "WT%",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 854.0,
+                            "error": null,
+                            "type": {
+                                "parameter": "MN",
+                                "unit": "PPM",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": "7",
+                            "error": null,
+                            "type": {
+                                "parameter": "NI",
+                                "unit": "PPM",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": "27",
+                            "error": null,
+                            "type": {
+                                "parameter": "ZN",
+                                "unit": "PPM",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 116.0,
+                            "error": null,
+                            "type": {
+                                "parameter": "RB",
+                                "unit": "PPM",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        },
+                        {
+                            "value": 1472.0,
+                            "error": null,
+                            "type": {
+                                "parameter": "SR",
+                                "unit": "PPM",
+                                "method": "XRF",
+                                "error_metric": null
+                            }
+                        }
+                    ]
+                }
+            ],
+            "date": "1900-01-01T00:00:00",
+            "name": "All data"
+        }
+    ]
+}
